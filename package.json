@@ -1,0 +1,8 @@
+{
+  "name": "live-stream-extension",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:maael/live-stream-extension.git",
+  "author": "Matt Elphick <matt.a.elphy@gmail.com>",
+  "license": "MIT"
+}
