@@ -1,0 +1,31 @@
+{
+  "name": "Live Streams",
+  "description": "View who's live on Youtube and Twitch, and get notifications.",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "alarms",
+    "notifications"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "/images/live16.png",
+      "32": "/images/live32.png",
+      "48": "/images/live48.png",
+      "128": "/images/live128.png"
+    }
+  },
+  "icons": {
+    "16": "/images/live16.png",
+    "32": "/images/live32.png",
+    "48": "/images/live48.png",
+    "128": "/images/live128.png"
+  }
+}
