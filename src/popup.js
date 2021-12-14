@@ -1,6 +1,7 @@
 const LIST_EL = document.getElementById("list");
 const ADD_BTN = document.getElementById("add_btn");
 const IMPORT_BTN = document.getElementById("import_btn");
+const REFRESH_BTN = document.getElementById("import_btn");
 
 syncGet("liveInfo", (liveInfo) => {
   LIST_EL.innerText = `Loading... (${(liveInfo || []).length} existing)`;
@@ -58,6 +59,10 @@ ADD_BTN.addEventListener("click", async () => {
       await addToFollows("youtube", [name]);
     }
   }
+});
+
+REFRESH_BTN.addEventListener("click", async () => {
+  chrome.runtime.sendMessage({ type: "request-update" });
 });
 
 IMPORT_BTN.addEventListener("click", async () => {
@@ -123,39 +128,101 @@ IMPORT_BTN.addEventListener("click", async () => {
   );
 });
 
+function getLiveItemHTML(data) {
+  return `
+  <div>
+    <div class="live-thumb-container">
+      <img class="live-thumb" src=${data.thumbnail} />
+      <small class="live-views">${data.viewCount.replace(
+        "watching",
+        `<svg xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+      <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+    </svg>`
+      )}</small>
+    </div>
+    <h5 class="live-title">${[data.game, data.title]
+      .filter(Boolean)
+      .join(" - ")}
+    </h5>
+    </div>
+  `;
+}
+
+const YOUTUBE_ICON = `<svg version="1.1" style="height:2em;width:2em;" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+viewBox="0 0 461.001 461.001" style="enable-background:new 0 0 461.001 461.001;" xml:space="preserve">
+<g>
+<path style="fill:#F61C0D;" d="M365.257,67.393H95.744C42.866,67.393,0,110.259,0,163.137v134.728
+ c0,52.878,42.866,95.744,95.744,95.744h269.513c52.878,0,95.744-42.866,95.744-95.744V163.137
+ C461.001,110.259,418.135,67.393,365.257,67.393z M300.506,237.056l-126.06,60.123c-3.359,1.602-7.239-0.847-7.239-4.568V168.607
+ c0-3.774,3.982-6.22,7.348-4.514l126.06,63.881C304.363,229.873,304.298,235.248,300.506,237.056z"/></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g></svg>`;
+
+const TWITCH_ICON = `<svg style="height:2em;width:2em;" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+<circle cx="512" cy="512" r="512" style="fill:#9146ff"/>
+<path d="M692.9 535 617 607h-76l-66.5 63v-63H389V337.2h303.9V535zM370 301.2l-95 89.9v323.8h114v89.9l95-89.9h76L730.9 553V301.2H370zM636 403h-38v107.9h38V403zm-142.5-.5h38v107.9h-38V402.5z" style="fill:#fff"/>
+</svg>`;
+
 async function setInfoBody(liveInfo) {
   const follows = (await asyncGet("follows")) || [];
   LIST_EL.innerText = "";
   const mappedFollows = follows.map((f) => ({
     ...f,
-    ...liveInfo.find((i) => i.channel === f.channel),
+    ...liveInfo.find((i) => i.channel === decodeURIComponent(f.channel)),
+    channel: decodeURIComponent(f.channel),
   }));
   mappedFollows
-    .sort(({ isLive }) => (isLive ? -1 : 1))
-    .forEach(({ channel, isLive, link, type }) => {
+    .filter(({ channel }) => !!channel)
+    .sort(({ data: a }, { data: b }) => {
+      return (
+        (parseInt(b?.viewCount.split(" ")[0].replace(",", "")) || 0) -
+        (parseInt(a?.viewCount.split(" ")[0].replace(",", "")) || 0)
+      );
+    })
+    .forEach(({ channel, isLive, link, type, data }) => {
+      const itemEl = document.createElement("span");
+      itemEl.classList.add("item", type);
       const rowEl = document.createElement("span");
       rowEl.classList.add("row");
       const typeEl = document.createElement("span");
       typeEl.classList.add(type);
-      typeEl.innerHTML = `[${type}]`;
+      typeEl.innerHTML = type === "youtube" ? YOUTUBE_ICON : TWITCH_ICON;
+      typeEl.style = "flex: 0;margin-right:0.2em;";
       const channelEl = document.createElement("span");
-      channelEl.style = "flex: 2;";
+      channelEl.classList.add("channel");
       channelEl.innerHTML = channel;
       const liveEl = document.createElement("span");
-      liveEl.innerHTML = isLive === undefined ? "???" : isLive ? "LIVE" : "";
-      channelEl.onclick = function () {
-        chrome.tabs.create({ active: true, url: link });
+      liveEl.innerHTML =
+        isLive === undefined
+          ? "???"
+          : isLive
+          ? `<svg xmlns="http://www.w3.org/2000/svg" style="width:2em;height:2em;color:green;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+    </svg>`
+          : "";
+      itemEl.onclick = function (e) {
+        if (e.target.classList.contains("rm")) {
+          removeFromFollows(type, channel);
+        } else {
+          chrome.tabs.create({
+            active: true,
+            url: data ? data.url || link : link,
+          });
+        }
       };
       const delEl = document.createElement("button");
-      delEl.innerHTML = "Remove";
-      delEl.onclick = function () {
-        removeFromFollows(type, channel);
-      };
+      delEl.classList.add("rm-btn", "rm");
+      delEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="rm" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+    </svg>`;
       rowEl.appendChild(typeEl);
       rowEl.appendChild(channelEl);
       rowEl.appendChild(liveEl);
       rowEl.appendChild(delEl);
-      LIST_EL.appendChild(rowEl);
+      itemEl.appendChild(rowEl);
+      if (data) {
+        itemEl.innerHTML += getLiveItemHTML(data);
+      }
+      LIST_EL.appendChild(itemEl);
     });
 }
 

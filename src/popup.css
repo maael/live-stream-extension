@@ -3,16 +3,23 @@ body {
   flex-direction: column;
   gap: 8px;
   width: 300px;
+  margin: 0;
+  padding: 10px 0;
+  background: #3f3f46;
+  color: #ffffff;
+}
+
+:root {
+  --twitch: #9146ff;
+  --youtube: #ff0000;
 }
 
 .row {
   display: flex;
   flex-direction: row;
   gap: 4px;
-}
-
-.row > * {
-  flex: 1;
+  align-items: center;
+  justify-content: center;
 }
 
 #list {
@@ -21,10 +28,89 @@ body {
   gap: 2px;
 }
 
-#list .youtube {
-  color: red;
+button {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
-#list .twitch {
-  color: purple;
+h5 {
+  margin: 0;
+}
+
+.rm-btn {
+  appearance: none;
+  border: none;
+  color: white;
+  background-color: red;
+  flex: 0 !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 2em;
+  width: 2em;
+  margin: 0;
+  cursor: no-drop;
+}
+
+.rm-btn svg {
+  width: 2em;
+  height: 2em;
+}
+
+.live-thumb-container {
+  position: relative;
+}
+
+.live-thumb {
+  height: 168px;
+  width: 100%;
+}
+
+.twitch .live-views {
+  background-color: var(--twitch);
+}
+
+.youtube .live-views {
+  background-color: var(--youtube);
+}
+
+.live-views {
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  padding: 2px 10px;
+  border-radius: 0.4rem;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  margin-bottom: 0.3rem;
+  cursor: pointer;
+}
+
+.item:hover {
+  background-color: rgba(100, 100, 100, 0.2);
+}
+
+.channel {
+  flex: 2;
+  font-weight: bold;
+}
+
+.twitch .channel {
+  color: var(--twitch);
+}
+
+.youtube .channel {
+  color: var(--youtube);
 }

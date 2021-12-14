@@ -9,7 +9,6 @@ const INITIAL_FOLLOWS = [
 async function getLiveInfo() {
   return new Promise((resolve) => {
     syncGet("follows", async (follows = INITIAL_FOLLOWS) => {
-      console.info("follows", follows);
       const params = new URLSearchParams();
       const youtube = follows
         .filter(({ type }) => type === "youtube")
@@ -21,15 +20,18 @@ async function getLiveInfo() {
         .join(",");
       if (youtube.length) params.append("youtube", youtube);
       if (twitch.length) params.append("twitch", twitch);
-      const result = await fetch(
+      const url = `https://discord-slash-commands.vercel.app/api/live?${params.toString()}`;
+      console.info(
+        "[liveInfo]",
         `https://discord-slash-commands.vercel.app/api/live?${params.toString()}`
-      )
+      );
+      const result = await fetch(url)
         .then(async (r) => {
           if (r.ok) {
             const { result: data } = await r.json();
             return data;
           } else {
-            console.error("[error]", r.status, r.statusText, await r.text());
+            console.warn("[error]", r.status, r.statusText, await r.text());
             return [];
           }
         })
@@ -80,7 +82,15 @@ async function getInfo() {
   chrome.runtime.sendMessage({ liveInfo });
 }
 
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  console.info("[message]", message);
+  if (message.type === "request-update") {
+    await getInfo();
+  }
+});
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  console.info("[alarm]", alarm.name);
   if (alarm.name !== "live-info") return;
   await getInfo();
 });
@@ -158,7 +168,7 @@ function syncGet(key, callback) {
       console.info("[syncGet:get]", { key, foundData });
       callback(foundData !== undefined ? JSON.parse(foundData) : foundData);
     } catch (e) {
-      console.error("[syncGet:error]", key, e);
+      console.warn("[syncGet:error]", key, e);
       callback(undefined);
     }
   })();
